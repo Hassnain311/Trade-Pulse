@@ -1,0 +1,6 @@
+tradepulse-Backend/node_modules/
+tradepulse-Backend/.env
+
+tradepulse-frontend/node_modules/
+tradepulse-frontend/.env
+tradepulse-frontend/dist/
