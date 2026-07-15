@@ -1,4 +1,5 @@
 const UserModel=require('../models/user.model');
+const BalanceModel=require('../models/balance.model');
 const crypto=require('crypto');
 const bcrypt=require('bcrypt');
 const utils=require('../utils/utils');
@@ -25,6 +26,10 @@ async function register(req,res){
             name:fullName,
             email,
             password:hashedpassword
+        });
+
+        await BalanceModel.create({
+            user:user._id
         });
 
         const OTP=utils.generateOTP();
@@ -145,80 +150,88 @@ async function VerifyEmail(req,res){
 }
 
 async function login(req,res){
-    const user=req.user;
+    try{
+        const user=req.user;
 
-    if(!user.verified){
-        const OTP     = utils.generateOTP();
-        const HTML    = utils.getOTPHTML(OTP);
-        const otpHash = crypto.createHash('sha256').update(OTP).digest('hex');
+        if(!user.verified){
+            const OTP     = utils.generateOTP();
+            const HTML    = utils.getOTPHTML(OTP);
+            const otpHash = crypto.createHash('sha256').update(OTP).digest('hex');
 
-        await OTPModel.deleteMany({ user: user._id });
-        await OTPModel.create({
-            email:   user.email,
-            user:    user._id,
-            OTPHash: otpHash,
-            purpose:"register"
+            await OTPModel.deleteMany({ user: user._id });
+            await OTPModel.create({
+                email:   user.email,
+                user:    user._id,
+                OTPHash: otpHash,
+                purpose:"register"
+            });
+
+            await sendEmail(user.email, 'Verify your email', `Your OTP is ${OTP}`, HTML);
+
+            return res.status(403).json({
+                message:     'Email not verified. OTP sent to your email.',
+                requiresOtp: true,
+                email:       user.email,
+                otpPurpose:  'register',
+            });
+
+        }
+
+        const Refreshtoken=jwt.sign({
+            id:user._id,
+            email:user.email,
+        },config.JWT_SECRET,{
+            expiresIn:"7d"
         });
 
-        await sendEmail(user.email, 'Verify your email', `Your OTP is ${OTP}`, HTML);
+        const hashedrefreshtoken=crypto.createHash('sha256').update(Refreshtoken).digest('hex');
 
-        return res.status(403).json({
-            message:     'Email not verified. OTP sent to your email.',
-            requiresOtp: true,
-            email:       user.email,
-            otpPurpose:  'register',
+        const session=await SessionModel.create({
+            user:user._id,
+            Refreshtokenhash:hashedrefreshtoken,
+            IP:req.ip,
+            UserAgent:req.headers[ "user-agent" ]
         });
 
-    }
+        const Accesstoken=jwt.sign({
+            id:user._id,
+            email:user.email,
+        },config.JWT_SECRET,{
+            expiresIn:"15m"
+        });
 
-    const Refreshtoken=jwt.sign({
-        id:user._id,
-        email:user.email,
-    },config.JWT_SECRET,{
-        expiresIn:"7d"
-    });
-
-    const hashedrefreshtoken=crypto.createHash('sha256').update(Refreshtoken).digest('hex');
-
-    const session=await SessionModel.create({
-        user:user._id,
-        Refreshtokenhash:hashedrefreshtoken,
-        IP:req.ip,
-        UserAgent:req.headers[ "user-agent" ]
-    });
-
-    const Accesstoken=jwt.sign({
-        id:user._id,
-        email:user.email,
-    },config.JWT_SECRET,{
-        expiresIn:"15m"
-    });
-
-    res.cookie('Accesstoken',Accesstoken, {
-      httpOnly:true,
-      secure:false,
-      sameSite:'strict',
-      maxAge:15 * 60 * 1000,
-    });
-
-    res.cookie('Refreshtoken',Refreshtoken,{
+        res.cookie('Accesstoken',Accesstoken, {
         httpOnly:true,
         secure:false,
-        sameSite:"strict",
-        maxAge:7 * 24 * 60 * 60 * 1000 
-    });
+        sameSite:'lax',
+        maxAge:15 * 60 * 1000,
+        });
+
+        res.cookie('Refreshtoken',Refreshtoken,{
+            httpOnly:true,
+            secure:false,
+            sameSite:'lax',
+            maxAge:7 * 24 * 60 * 60 * 1000 
+        });
 
 
-    res.status(200).json({
-        message:"User is Successfully Logged in",
-        requiresOtp:false,
-        user:{
-            id:user._id,
-            fullName:user.name,  
-            email:user.email,
-            profilePic:user.profilepic,
-        }
-    });
+        res.status(200).json({
+            message:"User is Successfully Logged in",
+            requiresOtp:false,
+            user:{
+                id:user._id,
+                fullName:user.name,  
+                email:user.email,
+                profilePic:user.profilepic,
+            }
+        });
+
+    }catch(err){
+        console.error('Login error:', err);
+        return res.status(500).json({ 
+            message:'Something went wrong'
+        });
+    }
 
 } 
 
@@ -341,14 +354,14 @@ async function Refreshtoken(req,res){
     res.cookie('Refreshtoken',Newrefreshtoken,{
         httpOnly:true,
         secure:false,
-        sameSite:"strict",
+        sameSite:'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000
     })
 
     res.cookie('Accesstoken',Accesstoken,{
         httpOnly:true,
         secure:false,
-        sameSite:"strict",
+        sameSite:'lax',
         maxAge:15 * 60 * 1000,
     })
 

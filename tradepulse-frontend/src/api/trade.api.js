@@ -11,7 +11,8 @@ export const tradeAPI = {
   getOpenOrders:    ()     => axiosInstance.get(`${TRADE}/open-orders`),
   getTradeHistory:  ()     => axiosInstance.get(`${TRADE}/history`),
   getPortfolio:     ()     => axiosInstance.get(`${TRADE}/portfolio`),
-  getBalance:       ()     => axiosInstance.get(`${TRADE}/balance`),
+  // getBalance:       ()     => axiosInstance.get(`${TRADE}/balance`),
+  getBalance: (symbol) => axiosInstance.get(`${TRADE}/balance${symbol ? `?symbol=${symbol}` : ''}`),
 
   // AI Agent predictions
   runPrediction:    (data) => axiosInstance.post('/api/agents/predict', data),

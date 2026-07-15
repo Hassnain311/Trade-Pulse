@@ -38,27 +38,60 @@ export function useTickerData() {
 }
 
 // Live ticker for a single trading pair (used on trade page)
+// export function useCoinTicker(symbol) {
+//   const [data, setData] = useState(null)
+//   const wsRef = useRef(null)
+
+//   useEffect(() => {
+//     if (!symbol) return
+//     wsRef.current = new WebSocket(`${BINANCE_WS_BASE}/${symbol.toLowerCase()}@ticker`)
+//     wsRef.current.onmessage = (e) => {
+//       const d = JSON.parse(e.data)
+//       setData({
+//         price:      d.c,
+//         change:     d.P,
+//         changePct:  d.p,
+//         high:       d.h,
+//         low:        d.l,
+//         volume:     d.v,
+//         quoteVol:   d.q,
+//         prevClose:  d.x,
+//       })
+//     }
+//     wsRef.current.onerror = () => wsRef.current?.close()
+//     return () => wsRef.current?.close()
+//   }, [symbol])
+
+//   return data
+// }
+
 export function useCoinTicker(symbol) {
   const [data, setData] = useState(null)
   const wsRef = useRef(null)
 
   useEffect(() => {
     if (!symbol) return
-    wsRef.current = new WebSocket(`${BINANCE_WS_BASE}/${symbol.toLowerCase()}@ticker`)
-    wsRef.current.onmessage = (e) => {
-      const d = JSON.parse(e.data)
-      setData({
-        price:      d.c,
-        change:     d.P,
-        changePct:  d.p,
-        high:       d.h,
-        low:        d.l,
-        volume:     d.v,
-        quoteVol:   d.q,
-        prevClose:  d.x,
-      })
+
+    const connect = () => {
+      wsRef.current = new WebSocket(`${BINANCE_WS_BASE}/${symbol.toLowerCase()}@ticker`)
+      wsRef.current.onmessage = (e) => {
+        const d = JSON.parse(e.data)
+        setData({
+          price:     d.c,
+          change:    d.P,
+          changePct: d.p,
+          high:      d.h,
+          low:       d.l,
+          volume:    d.v,
+          quoteVol:  d.q,
+          prevClose: d.x,
+        })
+      }
+      wsRef.current.onclose = () => setTimeout(connect, 3000) // ← retry after 3s
+      wsRef.current.onerror = () => wsRef.current?.close()
     }
-    wsRef.current.onerror = () => wsRef.current?.close()
+
+    connect()
     return () => wsRef.current?.close()
   }, [symbol])
 

@@ -4,7 +4,8 @@ const balanceSchema=new mongoose.Schema({
     user:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"user",
-        required:[true,"user is required"]
+        required:[true,"user is required"],
+        unique:[true,"user should be unique"]
     },
     usdt:{
         type:Number,

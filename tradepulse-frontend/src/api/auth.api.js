@@ -21,7 +21,8 @@ export const authAPI = {
 
   // Profile
   // getProfile:         ()     => axiosInstance.get(`${AUTH}/profile`),
-  getProfile:         (config) => axiosInstance.get(`${AUTH}/profile`, config),
+  // getProfile:         (config) => axiosInstance.get(`${AUTH}/profile`, config),
+  getProfile: (config = {}) => axiosInstance.get(`${AUTH}/profile`, config),
   // updateProfile:      (data) => axiosInstance.put(`${AUTH}/profile`, data),
   updateProfile: (data) => axiosInstance.put(`${AUTH}/profile`, data, {
   headers: { 'Content-Type': 'multipart/form-data' }
