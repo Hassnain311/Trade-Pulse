@@ -170,12 +170,10 @@ export default function Trade() {
 
       {/* ── Trade header ── */}
       <div className="mt-16 border-b border-[#252836] bg-[#13151C] px-4 py-2.5 flex items-center gap-4 overflow-x-auto scrollbar-hide shrink-0">
-        {/* Back */}
         <Link to={ROUTES.DASHBOARD} className="text-[#5A6478] hover:text-[#E2E8F0] transition-colors shrink-0">
           <ArrowLeft size={16} />
         </Link>
 
-        {/* Symbol */}
         <div className="flex items-center gap-2 shrink-0">
           <button className="text-[#5A6478] hover:text-[#FFD166] transition-colors">
             <Star size={14} />
@@ -190,7 +188,6 @@ export default function Trade() {
           </div>
         </div>
 
-        {/* Live price */}
         <div className="shrink-0">
           <p className={`font-mono font-bold text-lg leading-none ${isUp ? 'text-[#00E676]' : 'text-[#FF3B5C]'}`}>
             ${formatPrice(price)}
@@ -201,10 +198,8 @@ export default function Trade() {
           </div>
         </div>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-[#252836] shrink-0" />
 
-        {/* Stats */}
         <div className="flex items-center gap-6">
           <StatItem label="24h High"       value={`$${formatPrice(ticker?.high)}`}  color="text-[#00E676]" />
           <StatItem label="24h Low"        value={`$${formatPrice(ticker?.low)}`}   color="text-[#FF3B5C]" />
@@ -227,10 +222,10 @@ export default function Trade() {
             <TradingChart symbol={symbol} interval={interval} onIntervalChange={setInterval} />
           </div>
 
-          {/* Mobile Buy/Sell panel — only render once we have a real price */}
+          {/* Mobile Buy/Sell panel */}
           <div className="lg:hidden shrink-0">
             {livePrice > 0 && (
-              <BuySellPanel symbol={symbol} currentPrice={livePrice} />
+              <BuySellPanel key={symbol} symbol={symbol} currentPrice={livePrice} />
             )}
           </div>
         </div>
@@ -238,9 +233,8 @@ export default function Trade() {
         {/* Right: Buy/Sell + Recent Trades */}
         <div className="w-[280px] shrink-0 hidden lg:flex flex-col gap-2 p-2">
 
-          {/* only render once we have a real price */}
           {livePrice > 0 ? (
-            <BuySellPanel symbol={symbol} currentPrice={livePrice} />
+            <BuySellPanel key={symbol} symbol={symbol} currentPrice={livePrice} />
           ) : (
             <div className="bg-[#13151C] border border-[#252836] rounded-xl flex items-center
                             justify-center h-[400px]">

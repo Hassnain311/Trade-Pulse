@@ -37,7 +37,7 @@ export default function TradingChart({ symbol = 'BTCUSDT', interval = '1D', onIn
         enable_publishing: false,
         hide_top_toolbar:  false,
         hide_legend:       false,
-        allow_symbol_change: true,
+        allow_symbol_change: false,
         save_image:        false,
         studies:           ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
         overrides: {
