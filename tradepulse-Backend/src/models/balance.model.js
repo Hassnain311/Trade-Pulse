@@ -5,7 +5,7 @@ const balanceSchema=new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"user",
         required:[true,"user is required"],
-        unique:[true,"user should be unique"]
+        unique:true
     },
     usdt:{
         type:Number,
@@ -14,6 +14,9 @@ const balanceSchema=new mongoose.Schema({
 },{
     timestamps:true
 });
+
+
+balanceSchema.index({user:1},{unique:true});
 
 const BalanceModel=mongoose.model('balance',balanceSchema);
 
