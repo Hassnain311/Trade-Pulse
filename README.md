@@ -1,4 +1,3 @@
-TRADE PULSE
 TradePulse is a full-stack AI-powered crypto trading simulation platform. It combines real-time market data, paper trading, a live social feed, and (upcoming) AI price prediction agents — built end-to-end with Node.js, React, MongoDB, and Socket.io.
 
 ⚠️ Paper trading only. No real money is involved anywhere in this platform. Built as a learning/portfolio project.
