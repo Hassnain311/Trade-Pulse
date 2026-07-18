@@ -9,48 +9,12 @@ export function AuthProvider({ children }) {
   const [token,   setToken]   = useState(() => localStorage.getItem(STORAGE_KEYS.TOKEN))
   const [loading, setLoading] = useState(true)
 
-  // On mount: verify saved token and load user
-  // useEffect(() => {
-  //   const init = async () => {
-  //     const saved = localStorage.getItem(STORAGE_KEYS.TOKEN)
-  //     if (saved) {
-  //       try {
-  //         // ── API CALL: GET /api/auth/profile ───────────────────
-  //         // Uses the saved access token from localStorage.
-  //         // axiosInstance attaches it as: Authorization: Bearer <token>
-  //         // Backend decodes the JWT, finds the user, and returns their data.
-  //         //
-  //         // If the access token is EXPIRED the backend returns 401.
-  //         // axiosInstance's response interceptor catches the 401 and
-  //         // automatically calls POST /api/auth/refresh with the
-  //         // refresh token. If the refresh succeeds, it retries this
-  //         // profile call with the new access token — completely transparent.
-  //         //
-  //         // If the refresh token is also expired (or missing), the
-  //         // interceptor clears localStorage and redirects to /login.
-  //         const res = await authAPI.getProfile()
-  //         setUser(res.data.user)
-  //         setToken(saved)
-  //       } catch {
-  //         // Token is invalid and refresh also failed → clear everything
-  //         clearAuth()
-  //       }
-  //     }
-  //     setLoading(false)
-  //   }
-  //   init()
-  // }, [])
-
-  //New 
-   // On mount: ask the backend who we are, if anyone.
-  // No need to check localStorage first — the httpOnly accessToken
-  // cookie (if valid) is sent automatically by the browser because
-  // axiosInstance uses withCredentials: true.
+  
 
   useEffect(() => {
     const init = async () => {
       try {
-        // const res = await authAPI.getProfile()
+        
         const res = await authAPI.getProfile({ skipAuthRedirect: true })
         setUser(res.data.user)
       } catch {
@@ -61,14 +25,7 @@ export function AuthProvider({ children }) {
     init()
   }, [])
 
-  // Save tokens + user to localStorage and state
-  // const saveAuth = useCallback((accessToken, refreshToken, userData) => {
-  //   localStorage.setItem(STORAGE_KEYS.TOKEN,         accessToken)
-  //   localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
-  //   localStorage.setItem(STORAGE_KEYS.USER,          JSON.stringify(userData))
-  //   setToken(accessToken)
-  //   setUser(userData)
-  // }, [])
+ 
 
   const saveAuth = useCallback((userData) => {
   // Tokens are in httpOnly cookies — browser handles them automatically

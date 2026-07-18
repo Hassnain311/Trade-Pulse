@@ -219,7 +219,7 @@ async function login(req,res){
             message:"User is Successfully Logged in",
             requiresOtp:false,
             user:{
-                id:user._id,
+                _id:user._id,
                 fullName:user.name,  
                 email:user.email,
                 profilePic:user.profilepic,
@@ -236,62 +236,78 @@ async function login(req,res){
 } 
 
 async function logout(req,res){
-    const Refreshtoken=req.cookies.Refreshtoken;
-    if(!Refreshtoken){
-        return res.status(400).json({
-            message:"Refresh token not found"
+    try{
+        const Refreshtoken=req.cookies.Refreshtoken;
+        if(!Refreshtoken){
+            return res.status(400).json({
+                message:"Refresh token not found"
+            });
+        }
+
+        const refreshtokenhash=crypto.createHash('sha256').update(Refreshtoken).digest('hex');
+
+        const session=await SessionModel.findOne({
+            Refreshtokenhash:refreshtokenhash,
+            Revoked:false
+        });
+
+        if(!session){
+            return res.status(400).json({
+                message:"Invalid Refresh Token"
+            });
+        }
+
+        session.Revoked=true;
+        await session.save();
+
+        res.clearCookie('Refreshtoken');
+        res.clearCookie('Accesstoken');
+
+        res.status(200).json({
+            message:"Logged Out Successfully"
+        });
+
+    }catch(err){
+        console.error('Logout error:', err);
+        return res.status(500).json({ 
+            message:'Something went wrong' 
         });
     }
-
-    const refreshtokenhash=crypto.createHash('sha256').update(Refreshtoken).digest('hex');
-
-    const session=await SessionModel.findOne({
-        Refreshtokenhash:refreshtokenhash,
-        Revoked:false
-    });
-
-    if(!session){
-        return res.status(400).json({
-            message:"Invalid Refresh Token"
-        });
-    }
-
-    session.Revoked=true;
-    await session.save();
-
-    res.clearCookie('Refreshtoken');
-    res.clearCookie('Accesstoken');
-
-    res.status(200).json({
-        message:"Logged Out Successfully"
-    })
 
 
 }
 
 async function logoutAll(req,res){
-    const Refreshtoken=req.cookies.Refreshtoken;
-    if(!Refreshtoken){
-        return res.status(400).json({
-            message:"Refresh token not found"
+    try{
+        const Refreshtoken=req.cookies.Refreshtoken;
+        if(!Refreshtoken){
+            return res.status(400).json({
+                message:"Refresh token not found"
+            });
+        }
+
+        const decoded=jwt.verify(Refreshtoken,config.JWT_SECRET);
+
+        await SessionModel.updateMany({
+            user:decoded.id,
+            Revoked:false
+        },{
+            Revoked:true
+        });
+
+        res.clearCookie('Refreshtoken');
+        res.clearCookie('Accesstoken');
+
+        res.status(200).json({
+            message:"Logged out from all devices successfully"
+        });
+
+    }catch(err){
+        console.error('LogoutAll error:', err);
+        return res.status(500).json({ 
+            message:'Something went wrong' 
         });
     }
-
-    const decoded=jwt.verify(Refreshtoken,config.JWT_SECRET);
-
-    await SessionModel.updateMany({
-        user:decoded.id,
-        Revoked:false
-    },{
-        Revoked:true
-    });
-
-    res.clearCookie('Refreshtoken');
-    res.clearCookie('Accesstoken');
-
-    res.status(200).json({
-        message:"Logged out from all devices successfully"
-    });
 
 }
 
@@ -300,7 +316,7 @@ async function getProfile(req,res){
     res.status(200).json({
         message:"profile fetched Successfully",
         user:{
-            id:user._id,
+            _id:user._id,
             fullName:user.name,  
             email:user.email,
             profilePic:user.profilepic,
@@ -309,65 +325,73 @@ async function getProfile(req,res){
 }
 
 async function Refreshtoken(req,res){
-    const Refreshtoken=req.cookies.Refreshtoken;
-    if(!Refreshtoken){
-        return res.status(400).json({
-            message:"Refresh token not found"
+    try{
+        const Refreshtoken=req.cookies.Refreshtoken;
+        if(!Refreshtoken){
+            return res.status(400).json({
+                message:"Refresh token not found"
+            })
+        }
+
+        const decoded=jwt.verify(Refreshtoken,config.JWT_SECRET);
+
+
+        const refreshtokenhash=crypto.createHash('sha256').update(Refreshtoken).digest('hex');
+
+        const session=await SessionModel.findOne({
+            Refreshtokenhash:refreshtokenhash,
+            Revoked:false
+        });
+
+        if(!session){
+            return res.status(400).json({
+                message:"Invalid refresh token"
+            });
+        }
+
+        const Accesstoken=jwt.sign({
+            id:decoded.id,
+            email:decoded.email
+        },config.JWT_SECRET,{
+            expiresIn:"15m"
+        });
+
+        const Newrefreshtoken=jwt.sign({
+            id:decoded.id,
+            email:decoded.email
+        },config.JWT_SECRET,{
+            expiresIn:"7d"
+        });
+
+        const Newrefreshtokenhash=crypto.createHash('sha256').update(Newrefreshtoken).digest('hex');
+
+        session.Refreshtokenhash=Newrefreshtokenhash;
+        await session.save();
+
+        res.cookie('Refreshtoken',Newrefreshtoken,{
+            httpOnly:true,
+            secure:false,
+            sameSite:'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000
         })
-    }
 
-    const decoded=jwt.verify(Refreshtoken,config.JWT_SECRET);
+        res.cookie('Accesstoken',Accesstoken,{
+            httpOnly:true,
+            secure:false,
+            sameSite:'lax',
+            maxAge:15 * 60 * 1000,
+        })
 
+        res.status(200).json({
+            message:"Access token refreshed Successfully"
+        });
 
-    const refreshtokenhash=crypto.createHash('sha256').update(Refreshtoken).digest('hex');
-
-    const session=await SessionModel.findOne({
-        Refreshtokenhash:refreshtokenhash,
-        Revoked:false
-    });
-
-    if(!session){
-        return res.status(400).json({
-            message:"Invalid refresh token"
+    }catch(err){
+        console.error('RefreshToken error:', err);
+        return res.status(401).json({ 
+            message:"Invalid or expired refresh token" 
         });
     }
-
-    const Accesstoken=jwt.sign({
-        id:decoded.id,
-        email:decoded.email
-    },config.JWT_SECRET,{
-        expiresIn:"15m"
-    });
-
-    const Newrefreshtoken=jwt.sign({
-        id:decoded.id,
-        email:decoded.email
-    },config.JWT_SECRET,{
-        expiresIn:"7d"
-    });
-
-    const Newrefreshtokenhash=crypto.createHash('sha256').update(Newrefreshtoken).digest('hex');
-
-    session.Refreshtokenhash=Newrefreshtokenhash;
-    await session.save();
-
-    res.cookie('Refreshtoken',Newrefreshtoken,{
-        httpOnly:true,
-        secure:false,
-        sameSite:'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000
-    })
-
-    res.cookie('Accesstoken',Accesstoken,{
-        httpOnly:true,
-        secure:false,
-        sameSite:'lax',
-        maxAge:15 * 60 * 1000,
-    })
-
-    res.status(200).json({
-        message:"Access token refreshed Successfully"
-    })
 }
 
 async function updateprofile(req,res){
@@ -382,7 +406,7 @@ async function updateprofile(req,res){
         res.status(201).json({
             message:"User Updated Successfully!",
             user:{
-                id:user._id,
+                _id:user._id,
                 fullName:user.name,
                 email:user.email,
                 profilePic:user.profilepic,
@@ -458,10 +482,11 @@ async function resetpassword(req,res){
         const hashedotp=crypto.createHash('sha256').update(otp).digest('hex');
 
         const Otp=await OTPModel.findOne({
-            OTPHash:hashedotp
+            OTPHash:hashedotp,
+            purpose: "reset"
         });
 
-        if(!otp){
+        if(!Otp){
             return res.status(400).json({
                 message:"Invalid otp"
             });

@@ -14,6 +14,7 @@ async function placetrade(req,res){
             return res.status(400).json({ message: 'Invalid amount or price' });
         }
         if(side==="Buy"){
+            const EPSILON = 0.01;
             if(type==="Market"){
 
                 const balance=await BalanceModel.findOne({
@@ -25,13 +26,14 @@ async function placetrade(req,res){
                     });
                 }
                 const cost = parsedAmount * parsedPrice;
-                if(balance.usdt<cost){
+
+                if(balance.usdt<cost-EPSILON){
                     return res.status(400).json({
                         message:"Insufficient Balance"
                     });
                 }
 
-                balance.usdt-=cost;
+                balance.usdt = Math.max(0, balance.usdt - cost);
                 await balance.save();
 
                 const portfolio=await PortfolioModel.findOne({
@@ -80,7 +82,7 @@ async function placetrade(req,res){
                     });
                 }
 
-                if(balance.usdt<cost){
+                if(balance.usdt<cost-EPSILON){
                     return res.status(400).json({
                         message:"Insufficient Balance"
                     });
@@ -104,6 +106,7 @@ async function placetrade(req,res){
 
             }
         }else if(side==="Sell"){
+            const EPSILON = 0.000001;
             if(type==="Market"){
                 const portfolio=await PortfolioModel.findOne({
                     user:user._id,
@@ -115,7 +118,7 @@ async function placetrade(req,res){
                     });
                 }
 
-                if(portfolio.amount < parsedAmount){
+                if(portfolio.amount < parsedAmount-EPSILON){
                     return res.status(400).json({
                         message:"Not enough amount"
                     });
@@ -131,7 +134,7 @@ async function placetrade(req,res){
                     });
                 }
                 balance.usdt+=(parsedAmount * parsedPrice);
-                portfolio.amount -= parsedAmount;
+                portfolio.amount = Math.max(0, portfolio.amount - parsedAmount);
                 if(portfolio.amount < 0.000001){
                     await PortfolioModel.deleteOne({user:user._id,symbol});
                 }else{
@@ -168,7 +171,7 @@ async function placetrade(req,res){
                     });
                 }
 
-                if(portfolio.amount < parsedAmount){
+                if(portfolio.amount < parsedAmount-EPSILON){
                     return res.status(400).json({
                         message:"Insufficient balance"
                     });

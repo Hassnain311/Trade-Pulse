@@ -31,29 +31,36 @@ async function authenticate(req,res,next){
 
 
 async function Validate(req,res,next){
-    const token = req.cookies.Accesstoken;
-    if(!token){
-        return res.status(401).json({
-            message:"Access token not found"
+    try{
+        const token = req.cookies.Accesstoken;
+        if(!token){
+            return res.status(401).json({
+                message:"Access token not found"
+            });
+        }
+
+        const decoded=jwt.verify(token,config.JWT_SECRET);
+
+        const user=await UserModel.findOne({
+            _id:decoded.id,
+            verified:true
+        }).select('-password'); 
+
+        if(!user){
+            return res.status(401).json({
+                message:"User Not found"
+            });
+        }
+
+        req.user=user;
+
+        next();
+
+    }catch(err){
+        return res.status(401).json({ 
+            message:"Invalid or expired token" 
         });
     }
-
-    const decoded=jwt.verify(token,config.JWT_SECRET);
-
-    const user=await UserModel.findOne({
-        _id:decoded.id,
-        verified:true
-    }).select('-password'); 
-
-    if(!user){
-        return res.status(401).json({
-            message:"User Not found"
-        });
-    }
-
-    req.user=user;
-
-    next();
 }
 
 module.exports={authenticate,Validate};

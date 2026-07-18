@@ -37,33 +37,6 @@ export function useTickerData() {
   return tickers
 }
 
-// Live ticker for a single trading pair (used on trade page)
-// export function useCoinTicker(symbol) {
-//   const [data, setData] = useState(null)
-//   const wsRef = useRef(null)
-
-//   useEffect(() => {
-//     if (!symbol) return
-//     wsRef.current = new WebSocket(`${BINANCE_WS_BASE}/${symbol.toLowerCase()}@ticker`)
-//     wsRef.current.onmessage = (e) => {
-//       const d = JSON.parse(e.data)
-//       setData({
-//         price:      d.c,
-//         change:     d.P,
-//         changePct:  d.p,
-//         high:       d.h,
-//         low:        d.l,
-//         volume:     d.v,
-//         quoteVol:   d.q,
-//         prevClose:  d.x,
-//       })
-//     }
-//     wsRef.current.onerror = () => wsRef.current?.close()
-//     return () => wsRef.current?.close()
-//   }, [symbol])
-
-//   return data
-// }
 
 export function useCoinTicker(symbol) {
   const [data, setData] = useState(null)
@@ -123,20 +96,6 @@ export function useAllTickers() {
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
-  // const fetchAll = useCallback(async () => {
-  //   try {
-  //     const res = await binanceAPI.getAllTickers()
-  //     const sorted = res.data
-  //       .filter(t => t.symbol.endsWith('USDT'))
-  //       .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-  //     setTickers(sorted)
-  //     setError(null)
-  //   } catch (err) {
-  //     setError('Failed to fetch market data')
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }, [])
 
   const fetchAll = useCallback(async () => {
     try {
