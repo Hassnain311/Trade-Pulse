@@ -4,3 +4,4 @@ tradepulse-Backend/.env
 tradepulse-frontend/node_modules/
 tradepulse-frontend/.env
 tradepulse-frontend/dist/
+playwright-tests

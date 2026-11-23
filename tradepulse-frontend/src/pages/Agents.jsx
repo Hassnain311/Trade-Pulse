@@ -37,6 +37,7 @@ export default function Agents() {
         {/* Chart (takes most space) */}
         <div className="flex-1 min-w-0">
           <TradingChart
+            key={symbol}
             symbol={symbol}
             interval={interval}
             onIntervalChange={setInterval}

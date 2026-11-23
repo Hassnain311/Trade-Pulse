@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Bot, TrendingUp, TrendingDown, Minus, AlertCircle, RefreshCw } from 'lucide-react'
 import Button from '../common/Button'
 import { tradeAPI } from '../../api/trade.api'
@@ -12,26 +12,35 @@ export default function AgentPanel({ symbol, onSymbolChange }) {
   const [result,         setResult]         = useState(null)
   const [loading,        setLoading]        = useState(false)
   const [error,          setError]          = useState('')
+  const resultRef = useRef(null)
+
+  useEffect(() => {
+    if (result && resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [result])
 
   const runPrediction = async () => {
     setLoading(true)
     setError('')
     setResult(null)
     try {
-      // tradeAPI.runPrediction uses axiosInstance → auto-attaches access token
-      // If token expired → interceptor auto-refreshes via refresh token → retries
+      console.log('Sending prediction request for:', selectedSymbol, period)
       const res = await tradeAPI.runPrediction({
         symbol: selectedSymbol,
         period,
       })
+      console.log('Prediction received:', res.data)
       setResult(res.data)
       onSymbolChange?.(selectedSymbol)
     } catch (err) {
+      console.error('Prediction request error:', err)
       if (err.response?.status === 503) {
-        // ML service not running yet
         setError('AI model service is not running yet. Will be available after the ML integration phase.')
+      } else if (err.response?.status === 401) {
+        setError('Please log in again to use the AI Prediction Agent.')
       } else {
-        setError(err.response?.data?.message || 'Prediction failed. Try again.')
+        setError(err.response?.data?.message || err.message || 'Prediction failed. Try again.')
       }
     } finally {
       setLoading(false)
@@ -73,7 +82,13 @@ export default function AgentPanel({ symbol, onSymbolChange }) {
           <label className="text-[#5A6478] text-xs mb-1.5 block">Select Coin</label>
           <select
             value={selectedSymbol}
-            onChange={e => setSelectedSymbol(e.target.value)}
+            onChange={e => {
+              const newSym = e.target.value
+              setSelectedSymbol(newSym)
+              setResult(null)
+              setError('')
+              onSymbolChange?.(newSym)
+            }}
             className="w-full bg-[#1A1D27] border border-[#252836] rounded-lg px-3 py-2.5
                        text-sm text-[#E2E8F0] focus:outline-none focus:border-[#A78BFA]
                        transition-colors cursor-pointer"
@@ -91,7 +106,11 @@ export default function AgentPanel({ symbol, onSymbolChange }) {
             {PERIODS.map(p => (
               <button
                 key={p}
-                onClick={() => setPeriod(p)}
+                onClick={() => {
+                  setPeriod(p)
+                  setResult(null)
+                  setError('')
+                }}
                 className={`py-2 text-xs font-display font-medium rounded-lg border transition-colors
                             ${period === p
                               ? 'bg-[rgba(167,139,250,0.12)] border-[rgba(167,139,250,0.4)] text-[#A78BFA]'
@@ -134,6 +153,8 @@ export default function AgentPanel({ symbol, onSymbolChange }) {
           }
         </button>
 
+        {/* Prediction period change triggers auto-reset to avoid showing stale data */}
+
         {/* Error */}
         {error && (
           <div className="bg-[rgba(255,59,92,0.08)] border border-[#FF3B5C] rounded-lg px-3 py-2.5
@@ -145,7 +166,7 @@ export default function AgentPanel({ symbol, onSymbolChange }) {
 
         {/* Prediction result */}
         {result && (
-          <div className="bg-[#1A1D27] border border-[#252836] rounded-xl p-4 space-y-4 animate-fade-in">
+          <div ref={resultRef} className="bg-[#1A1D27] border border-[#252836] rounded-xl p-4 space-y-4 animate-fade-in">
             <div className="flex items-center justify-between">
               <span className="text-[#7E8BA0] text-xs">Prediction ({period})</span>
               <div className="flex items-center gap-1.5">
